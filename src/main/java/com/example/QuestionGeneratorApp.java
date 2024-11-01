@@ -7,12 +7,17 @@ import org.springframework.http.*;
 import org.springframework.web.client.RestTemplate;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @SpringBootApplication
 @RestController
 @RequestMapping("/generate")
+@CrossOrigin(origins = "*")
 public class QuestionGeneratorApp {
 
+    private static final Logger logger = LoggerFactory.getLogger(QuestionGeneratorApp.class);
+    
     private static final String GROQ_API_KEY = "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"; // Your GroqCloud API key
     private static final String API_URL = "https://api.groq.com/openai/v1/chat/completions"; // GroqCloud API URL
 
@@ -22,6 +27,7 @@ public class QuestionGeneratorApp {
 
     @PostMapping("/question")
     public ResponseEntity<String> generateQuestion(@RequestBody UserRequest userRequest) {
+        logger.info("Received request to generate question for topic: {}", userRequest.getTopic());
         String prompt = createPrompt(userRequest);
         String generatedQuestion = callGroqAPI(prompt);
         return ResponseEntity.ok(generatedQuestion);
@@ -57,19 +63,19 @@ public class QuestionGeneratorApp {
         HttpEntity<String> requestEntity = new HttpEntity<>(requestBody, headers);
         
         // Call the API
-        ResponseEntity<String> response = restTemplate.exchange(API_URL, HttpMethod.POST, requestEntity, String.class);
-        
-        if (response.getStatusCode() == HttpStatus.OK) {
-            try {
+        try {
+            ResponseEntity<String> response = restTemplate.exchange(API_URL, HttpMethod.POST, requestEntity, String.class);
+            if (response.getStatusCode() == HttpStatus.OK) {
                 ObjectMapper objectMapper = new ObjectMapper();
                 JsonNode jsonNode = objectMapper.readTree(response.getBody());
-                return jsonNode.get("choices").get(0).get("message").get("content").asText(); // Adjust based on actual response structure
-            } catch (Exception e) {
-                e.printStackTrace();
-                return "Error parsing response.";
+                return jsonNode.get("choices").get(0).get("message").get("content").asText();
+            } else {
+                logger.error("Error calling Groq API: {}", response.getStatusCode());
+                return "Error: " + response.getStatusCode();
             }
-        } else {
-            return "Error: " + response.getStatusCode();
+        } catch (Exception e) {
+            logger.error("Exception while calling Groq API: {}", e.getMessage());
+            return "Error calling Groq API.";
         }
     }
 }

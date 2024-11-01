@@ -9,7 +9,7 @@ public class WebConfig implements WebMvcConfigurer {
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/generate/**") // Allow all endpoints under /generate
-                .allowedOrigins("http://127.0.0.1:4100") // Your frontend URL
+                .allowedOrigins("http://127.0.0.1:4100/") // Your frontend URL
                 .allowedMethods("POST", "GET", "OPTIONS")
                 .allowedHeaders("*")
                 .allowCredentials(true);
